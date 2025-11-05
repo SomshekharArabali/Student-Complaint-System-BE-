@@ -14,45 +14,46 @@ import FeedbackModule from './components/FeedbackModule';
 import LoginForm from './components/Auth/LoginForm';
 import SignupForm from './components/Auth/SignupForm';
 import ForgotPasswordForm from './components/Auth/ForgotPasswordForm';
-import useLocalStorage from './hooks/useLocalStorage';
 import { saveComplaint, getComplaints, saveFeedback, getFeedbacks } from './lib/supabase';
 import { Complaint, AdminProfile, SystemSettings as SystemSettingsType, User } from './types';
+
+// Safe localStorage helper
+const safeLocalStorage = {
+  getItem: (key: string, defaultValue: any) => {
+    try {
+      if (typeof window === 'undefined') return defaultValue;
+      const item = localStorage.getItem(key);
+      return item ? JSON.parse(item) : defaultValue;
+    } catch {
+      return defaultValue;
+    }
+  },
+  setItem: (key: string, value: any) => {
+    try {
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(key, JSON.stringify(value));
+      }
+    } catch (error) {
+      console.error('Error saving to localStorage:', error);
+    }
+  }
+};
 
 function App() {
   const [currentPage, setCurrentPage] = useState('home');
   const [showNotifications, setShowNotifications] = useState(false);
   const [authMode, setAuthMode] = useState<'login' | 'signup' | 'forgot' | 'authenticated'>('login');
-  const [currentUser, setCurrentUser] = useLocalStorage<User | null>('sits-current-user', null);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [complaints, setComplaints] = useState<Complaint[]>([]);
   const [feedbacks, setFeedbacks] = useState<any[]>([]);
-  const [users, setUsers] = useLocalStorage<User[]>('sits-users', [
-    {
-      id: 'admin-1',
-      email: 'admin@sits.edu.in',
-      name: 'Admin User',
-      role: 'admin',
-      department: 'Administration',
-      created_at: new Date().toISOString()
-    },
-    {
-      id: 'student-1',
-      email: 'student@sits.edu.in',
-      name: 'Student User',
-      role: 'student',
-      rollNumber: 'SITS2024001',
-      department: 'Computer Science Engineering',
-      created_at: new Date().toISOString()
-    }
-  ]);
-
-  const [adminProfile, setAdminProfile] = useLocalStorage<AdminProfile>('sits-admin-profile', {
+  const [users, setUsers] = useState<User[]>([]);
+  const [adminProfile, setAdminProfile] = useState<AdminProfile>({
     name: 'Admin User',
     email: 'admin@sits.edu.in',
     phone: '+91 8734 290 290',
     department: 'Administration'
   });
-
-  const [systemSettings, setSystemSettings] = useLocalStorage<SystemSettingsType>('sits-system-settings', {
+  const [systemSettings, setSystemSettings] = useState<SystemSettingsType>({
     siteName: 'SITS Complaint Management',
     adminEmail: 'admin@sits.edu.in',
     contactPhone: '+91 8734 290 290',
@@ -83,16 +84,63 @@ function App() {
     compressionEnabled: true
   });
 
+  // Initialize from localStorage after mount
+  useEffect(() => {
+    const savedUser = safeLocalStorage.getItem('sits-current-user', null);
+    const savedUsers = safeLocalStorage.getItem('sits-users', [
+      {
+        id: 'admin-1',
+        email: 'admin@sits.edu.in',
+        name: 'Admin User',
+        role: 'admin',
+        department: 'Administration',
+        created_at: new Date().toISOString()
+      },
+      {
+        id: 'student-1',
+        email: 'student@sits.edu.in',
+        name: 'Student User',
+        role: 'student',
+        rollNumber: 'SITS2024001',
+        department: 'Computer Science Engineering',
+        created_at: new Date().toISOString()
+      }
+    ]);
+    const savedProfile = safeLocalStorage.getItem('sits-admin-profile', adminProfile);
+    const savedSettings = safeLocalStorage.getItem('sits-system-settings', systemSettings);
+
+    setCurrentUser(savedUser);
+    setUsers(savedUsers);
+    setAdminProfile(savedProfile);
+    setSystemSettings(savedSettings);
+    
+    if (savedUser) {
+      setAuthMode('authenticated');
+    }
+  }, []);
+
+  // Save to localStorage when state changes
+  useEffect(() => {
+    safeLocalStorage.setItem('sits-current-user', currentUser);
+  }, [currentUser]);
+
+  useEffect(() => {
+    safeLocalStorage.setItem('sits-users', users);
+  }, [users]);
+
+  useEffect(() => {
+    safeLocalStorage.setItem('sits-admin-profile', adminProfile);
+  }, [adminProfile]);
+
+  useEffect(() => {
+    safeLocalStorage.setItem('sits-system-settings', systemSettings);
+  }, [systemSettings]);
+
   // Load data on component mount
   useEffect(() => {
     loadComplaints();
     loadFeedbacks();
   }, []);
-
-  // Set auth mode based on current user
-  useEffect(() => {
-    setAuthMode(currentUser ? 'authenticated' : 'login');
-  }, [currentUser]);
 
   const loadComplaints = async () => {
     try {
@@ -113,7 +161,6 @@ function App() {
   };
 
   const handleLogin = async (email: string, password: string, role: 'student' | 'admin'): Promise<boolean> => {
-    // Demo authentication - in production, this would be handled by Supabase Auth
     const demoCredentials = {
       'admin@sits.edu.in': { password: 'admin123', role: 'admin' },
       'student@sits.edu.in': { password: 'student123', role: 'student' }
@@ -132,7 +179,6 @@ function App() {
 
   const handleSignup = async (userData: any): Promise<boolean> => {
     try {
-      // Check if user already exists
       const existingUser = users.find(u => u.email === userData.email);
       if (existingUser) {
         return false;
@@ -158,7 +204,6 @@ function App() {
   };
 
   const handleForgotPassword = async (email: string): Promise<boolean> => {
-    // Demo implementation - in production, this would send actual reset emails
     const user = users.find(u => u.email === email);
     return !!user;
   };
@@ -167,6 +212,7 @@ function App() {
     setCurrentUser(null);
     setCurrentPage('home');
     setShowNotifications(false);
+    setAuthMode('login');
   };
 
   const handleNavigate = (page: string) => {
@@ -191,7 +237,6 @@ function App() {
       setComplaints(prev => [savedComplaint, ...prev]);
     } catch (error) {
       console.error('Error saving complaint:', error);
-      // Fallback to local storage
       setComplaints(prev => [newComplaint, ...prev]);
     }
   };
