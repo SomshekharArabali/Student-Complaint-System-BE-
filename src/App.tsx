@@ -4,7 +4,7 @@ import Sidebar from './components/Sidebar';
 import Dashboard from './components/Dashboard';
 import ComplaintForm from './components/ComplaintForm';
 import Profile from './components/Profile';
-import SystemStatus from './components/SystemStatus';
+import SystemStatus from './components/SystemStatus.tsx'; // Added .tsx extension
 import QuickActions from './components/QuickActions';
 import GenerateReport from './components/GenerateReport';
 import SystemSettings from './components/SystemSettings';
