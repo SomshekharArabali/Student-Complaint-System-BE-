@@ -103,4 +103,6 @@ Here's a typical sequence of interactions within the SITS Complaint Management S
 
 ## 5. Preview 
 
-![Preview](./preview.gif)
+<p align="center">
+  <img src="./preview.gif" alt="Preview" width="800">
+</p>
