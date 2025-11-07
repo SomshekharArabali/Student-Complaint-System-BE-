@@ -101,6 +101,6 @@ Here's a typical sequence of interactions within the SITS Complaint Management S
     *   When feedback is submitted, it's saved to Supabase (or `localStorage`).
     *   All data displayed in dashboards and reports is fetched from the persistent storage.
 
-5. **Preview**
+## 5. Preview 
 
-    
+    ![App Preview](./preview.gif)
